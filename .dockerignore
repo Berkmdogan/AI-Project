@@ -1,0 +1,10 @@
+.env
+.git
+__pycache__
+*.pyc
+*.pyo
+data/frames/*
+data/events/*
+data/vector_store/*
+*.pt
+*.onnx

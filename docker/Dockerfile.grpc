@@ -1,0 +1,26 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Proto stub'larını oluştur
+RUN python -m grpc_tools.protoc \
+    -I grpc_service/proto \
+    --python_out=grpc_service \
+    --grpc_python_out=grpc_service \
+    grpc_service/proto/video_analysis.proto
+
+RUN mkdir -p data/frames data/events data/vector_store
+
+EXPOSE 50051
+
+CMD ["python", "-m", "grpc_service.server"]
