@@ -20,9 +20,11 @@ input int    ATR_Period       = 50;
 input double ATR_Multi_Main   = 1.0;
 input double ATR_Multi_Minor  = 0.5;
 
-//=== EMA Trend Filter ===
-// Yalnızca trendin yönünde sinyal üretir.
-// EMA50 > EMA200 → sadece BUY, EMA50 < EMA200 → sadece SELL.
+//=== EMA Slope Filter ===
+// EMA'nın o andaki eğimini kontrol eder (yön değil momentum).
+// Satış: FastEMA son 3 barda düşüyor olmalı.
+// Alış : FastEMA son 3 barda yükseliyor olmalı.
+// Hem uptrend hem downtrend'de çalışır, sadece momentum kaybında filtreler.
 input bool   UseTrendFilter   = true;
 input int    FastEMA          = 50;
 input int    SlowEMA          = 200;
@@ -150,16 +152,17 @@ int OnCalculate(const int rates_total,
 //+------------------------------------------------------------------+
 bool CheckFilters(int bar, bool isBuy, const double &close[])
 {
-   // DEĞİŞİKLİK 3: EMA trend filtresi eklendi.
-   // Yükselen trendde (EMA50 > EMA200) yalnızca BUY, düşen trendde yalnızca SELL.
+   // EMA Slope filtresi: EMA'nın yönü değil, o anki eğimi kontrol edilir.
+   // Hem uptrend hem downtrend'de hem alış hem satış sinyali üretebilir.
+   // Sadece EMA momentumu sinyalin yönüyle çelişiyorsa bloke eder.
    if(UseTrendFilter)
    {
-      double emaFast = iMA(NULL, 0, FastEMA, 0, MODE_EMA, PRICE_CLOSE, bar);
-      double emaSlow = iMA(NULL, 0, SlowEMA, 0, MODE_EMA, PRICE_CLOSE, bar);
-      // Sadece EMA yönüne bak: fiyatın EMA'ya göre konumu şart değil.
-      // Bu sayede güçlü trendlerde karşı-taraf sinyaller de oluşabilir.
-      if( isBuy && emaFast < emaSlow) return false;
-      if(!isBuy && emaFast > emaSlow) return false;
+      double emaFastNow  = iMA(NULL, 0, FastEMA, 0, MODE_EMA, PRICE_CLOSE, bar);
+      double emaFastPrev = iMA(NULL, 0, FastEMA, 0, MODE_EMA, PRICE_CLOSE, bar + 3);
+      bool emaRising  = (emaFastNow > emaFastPrev);
+      bool emaFalling = (emaFastNow < emaFastPrev);
+      if( isBuy && emaFalling) return false;
+      if(!isBuy && emaRising)  return false;
    }
 
    // DEĞİŞİKLİK 1: RSI filtre yönü düzeltildi.
