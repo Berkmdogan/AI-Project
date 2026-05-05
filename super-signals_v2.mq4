@@ -156,10 +156,10 @@ bool CheckFilters(int bar, bool isBuy, const double &close[])
    {
       double emaFast = iMA(NULL, 0, FastEMA, 0, MODE_EMA, PRICE_CLOSE, bar);
       double emaSlow = iMA(NULL, 0, SlowEMA, 0, MODE_EMA, PRICE_CLOSE, bar);
-      bool upTrend   = (close[bar] > emaFast && emaFast > emaSlow);
-      bool downTrend = (close[bar] < emaFast && emaFast < emaSlow);
-      if( isBuy && !upTrend)   return false;
-      if(!isBuy && !downTrend) return false;
+      // Sadece EMA yönüne bak: fiyatın EMA'ya göre konumu şart değil.
+      // Bu sayede güçlü trendlerde karşı-taraf sinyaller de oluşabilir.
+      if( isBuy && emaFast < emaSlow) return false;
+      if(!isBuy && emaFast > emaSlow) return false;
    }
 
    // DEĞİŞİKLİK 1: RSI filtre yönü düzeltildi.
