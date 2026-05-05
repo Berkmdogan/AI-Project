@@ -1,0 +1,30 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: trading_ai/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./ml_layer/models:/app/trading_ai/ml_layer/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  monitor:
+    build:
+      context: ..
+      dockerfile: trading_ai/Dockerfile
+    command: python -m trading_ai.ui_layer.telegram_bot
+    env_file:
+      - .env
+    volumes:
+      - ./ml_layer/models:/app/trading_ai/ml_layer/models
+    restart: unless-stopped
+    depends_on:
+      - api
