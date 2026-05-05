@@ -73,9 +73,10 @@ double arrUp[];
 double wpr[];
 double price[];
 
-string   indicatorFileName;
-bool     returnBars;
-datetime LastAlertTime = 0;
+string         indicatorFileName;
+bool           returnBars;
+datetime       LastAlertTime  = 0;
+ENUM_TIMEFRAMES effectiveTF;   // input TimeFrame kopyası — strict modda input değiştirilemez
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -93,10 +94,10 @@ int OnInit()
 
    indicatorFileName = WindowExpertName();
    returnBars        = (TimeFrame == -99);
-   if(!returnBars)
-      TimeFrame = (ENUM_TIMEFRAMES)MathMax((int)TimeFrame, (int)_Period);
+   effectiveTF       = returnBars ? TimeFrame
+                                  : (ENUM_TIMEFRAMES)MathMax((int)TimeFrame, (int)_Period);
 
-   IndicatorShortName("WPR Arrows [TF:" + IntegerToString(TimeFrame) +
+   IndicatorShortName("WPR Arrows [TF:" + IntegerToString(effectiveTF) +
                       " Risk:" + IntegerToString(Risk) + "]");
    return(INIT_SUCCEEDED);
 }
@@ -127,31 +128,31 @@ int OnCalculate(const int rates_total,
    if(returnBars) { arrDn[0] = limit + 1; return(rates_total); }
 
    //--- Multi-timeframe modu
-   if(TimeFrame != Period())
+   if(effectiveTF != Period())
    {
       int mtfBars = (int)MathMax(limit, MathMin(rates_total - 1,
-                   iCustom(NULL, TimeFrame, indicatorFileName, -99, 0, 0)
-                   * TimeFrame / Period()));
+                   iCustom(NULL, effectiveTF, indicatorFileName, -99, 0, 0)
+                   * effectiveTF / Period()));
 
       for(int i = mtfBars; i >= 0; i--)
       {
-         int y = iBarShift(NULL, TimeFrame, time[i]);
+         int y = iBarShift(NULL, effectiveTF, time[i]);
          int x = y;
          if(ArrowOnFirst)
-            { if(i < rates_total - 1) x = iBarShift(NULL, TimeFrame, time[i + 1]); }
+            { if(i < rates_total - 1) x = iBarShift(NULL, effectiveTF, time[i + 1]); }
          else
-            { if(i > 0) x = iBarShift(NULL, TimeFrame, time[i - 1]); else x = -1; }
+            { if(i > 0) x = iBarShift(NULL, effectiveTF, time[i - 1]); else x = -1; }
 
          arrDn[i] = EMPTY_VALUE;
          arrUp[i] = EMPTY_VALUE;
 
          if(y != x)
          {
-            arrDn[i] = iCustom(NULL, TimeFrame, indicatorFileName,
+            arrDn[i] = iCustom(NULL, effectiveTF, indicatorFileName,
                                PERIOD_CURRENT, x1, x2, WprPrice, Risk, ArrowsGap,
                                alertsOn, alertsOnCurrent, alertsMessage,
                                alertsSound, alertsEmail, alertsNotify, 0, y);
-            arrUp[i] = iCustom(NULL, TimeFrame, indicatorFileName,
+            arrUp[i] = iCustom(NULL, effectiveTF, indicatorFileName,
                                PERIOD_CURRENT, x1, x2, WprPrice, Risk, ArrowsGap,
                                alertsOn, alertsOnCurrent, alertsMessage,
                                alertsSound, alertsEmail, alertsNotify, 1, y);
